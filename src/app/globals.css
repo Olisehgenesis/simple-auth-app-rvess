@@ -6,13 +6,12 @@
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
   --ink: #173a40;
   --muted: #5b7779;
   --line: #c9dbd7;
   --accent: #147467;
   --accent-hover: #0e5e55;
-  --paper: #ffffff;
+  --paper: #fff;
 }
 
 * {
@@ -31,10 +30,15 @@ a {
   color: inherit;
 }
 
-.site-header {
+.site-header,
+.site-footer,
+main {
   width: min(100% - 48px, 1080px);
+  margin-inline: auto;
+}
+
+.site-header {
   min-height: 84px;
-  margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -53,7 +57,6 @@ a {
 
 .brand strong {
   color: var(--accent);
-  font-weight: 700;
 }
 
 .brand-mark {
@@ -88,9 +91,7 @@ a {
 }
 
 main {
-  width: min(100% - 48px, 1080px);
   flex: 1;
-  margin: 0 auto;
   display: grid;
   align-items: center;
   padding: 72px 0 96px;
@@ -125,7 +126,6 @@ main {
   color: var(--accent);
   font-size: 14px;
   font-weight: 650;
-  letter-spacing: 0.01em;
 }
 
 h1 {
@@ -162,7 +162,8 @@ h1 {
 }
 
 .button:focus-visible,
-a:focus-visible {
+a:focus-visible,
+button:focus-visible {
   outline: 3px solid #a7d65e;
   outline-offset: 3px;
 }
@@ -212,15 +213,13 @@ a:focus-visible {
 }
 
 .site-footer {
-  width: min(100% - 48px, 1080px);
-  margin: 0 auto;
   padding: 20px 0 24px;
   border-top: 1px solid var(--line);
 }
 
 .account {
   width: min(100%, 700px);
-  margin: 0 auto;
+  margin-inline: auto;
   padding: clamp(24px, 5vw, 48px);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -294,8 +293,8 @@ a:focus-visible {
 
 @media (max-width: 560px) {
   .site-header,
-  main,
-  .site-footer {
+  .site-footer,
+  main {
     width: min(100% - 32px, 1080px);
   }
 
