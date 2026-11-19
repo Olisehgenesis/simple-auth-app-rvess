@@ -25,17 +25,16 @@ Copy `.env.example` to `.env` and set:
 | `OIDC_CLIENT_SECRET` | Client secret from the rvessID developer dashboard |
 | `APP_ORIGIN` | Public origin of this app, such as `http://localhost:3000` |
 | `OIDC_CALLBACK_URL` | Exact registered callback URL, such as `http://localhost:3000/api/auth/callback` |
-| `KV_REST_API_URL` | Upstash Redis REST URL |
-| `KV_REST_API_TOKEN` | Upstash Redis REST token |
+| `SESSION_SECRET` | Random session encryption secret of at least 32 characters |
 
-The app uses Redis to keep the one-time authorization transaction (including the PKCE verifier) and authenticated user session on the server. Create a Redis database through the Vercel Marketplace or Upstash, and provide its REST URL and token. Session cookies contain only random opaque IDs. No ID or access tokens are stored after the callback completes.
+No database or Redis service is required. The app uses an encrypted, authenticated, HTTP-only session cookie for the short-lived authorization transaction and authenticated user profile. The PKCE verifier is derived on the server from the random transaction state and `SESSION_SECRET`; it is never sent to or stored in the browser. ID and access tokens are used only during callback validation and are not retained.
 
 ## Run locally
 
 ```sh
 npm install
 cp .env.example .env
-# Edit .env with your rvessID and Upstash credentials.
+# Edit .env with your rvessID credentials and a random SESSION_SECRET.
 npm run dev
 ```
 
@@ -43,6 +42,6 @@ Open [http://localhost:3000](http://localhost:3000). `npm run build` creates the
 
 ## Vercel deployment
 
-Import the GitHub repository into Vercel using the **Next.js** framework preset. Add all six environment variables above to the project. Set `APP_ORIGIN` to the deployment's canonical HTTPS origin and `OIDC_CALLBACK_URL` to `APP_ORIGIN` plus `/api/auth/callback`; register that exact callback in the rvessID developer dashboard. Redeploy after changing environment variables.
+Import the GitHub repository into Vercel using the **Next.js** framework preset. Add the five environment variables above to the project. Set `APP_ORIGIN` to the deployment's canonical HTTPS origin and `OIDC_CALLBACK_URL` to `APP_ORIGIN` plus `/api/auth/callback`; register that exact callback in the rvessID developer dashboard. Redeploy after changing environment variables.
 
 rvessID issues short-lived authorization codes and tokens, but no email or refresh tokens. The account page uses the validated ID token `sub` as the stable account ID and shows only allowlisted profile claims returned by the UserInfo endpoint.

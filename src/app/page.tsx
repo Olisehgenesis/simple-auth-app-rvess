@@ -1,12 +1,11 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
-import { getUserSession } from "../lib/auth";
+import { getAppSession } from "../lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const cookieStore = await cookies();
-  const user = await getUserSession(cookieStore.get("rvess.sid")?.value);
+  const session = await getAppSession();
+  const user = session.user;
 
   if (user) {
     return (

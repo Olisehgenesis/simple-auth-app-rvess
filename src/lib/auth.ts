@@ -1,7 +1,9 @@
 import "server-only";
 
-import { Redis } from "@upstash/redis";
+import { createHmac } from "node:crypto";
+import { getIronSession, type SessionOptions } from "iron-session";
 import * as oidc from "openid-client";
+import { cookies } from "next/headers";
 
 export type Profile = Partial<
   Record<"name" | "preferred_username" | "picture", string>
@@ -15,13 +17,16 @@ export interface AuthenticatedUser {
 export interface AuthTransaction {
   state: string;
   nonce: string;
-  codeVerifier: string;
+}
+
+export interface AppSession {
+  authTransaction?: AuthTransaction;
+  user?: AuthenticatedUser;
 }
 
 const issuer = new URL("https://www.rvessid.org");
 const sessionLifetimeSeconds = 8 * 60 * 60;
 let oidcConfigPromise: Promise<oidc.Configuration> | undefined;
-let redisClient: Redis | undefined;
 
 function requiredEnv(name: string): string {
   const value = process.env[name]?.trim();
@@ -66,65 +71,29 @@ export function getOidcConfig(): Promise<oidc.Configuration> {
   return oidcConfigPromise;
 }
 
-export function getRedis(): Redis {
-  if (!redisClient) {
-    redisClient = new Redis({
-      url: requiredEnv("KV_REST_API_URL"),
-      token: requiredEnv("KV_REST_API_TOKEN"),
-    });
-  }
-  return redisClient;
-}
-
-export function sessionCookieOptions() {
+export function getSessionOptions(): SessionOptions {
   return {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax" as const,
-    path: "/",
-    maxAge: sessionLifetimeSeconds,
+    cookieName: "rvess.sid",
+    password: requiredEnv("SESSION_SECRET"),
+    ttl: sessionLifetimeSeconds,
+    cookieOptions: {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: sessionLifetimeSeconds,
+    },
   };
 }
 
-export async function saveTransaction(
-  id: string,
-  transaction: AuthTransaction,
-): Promise<void> {
-  await getRedis().set(`oidc:transaction:${id}`, transaction, {
-    ex: 10 * 60,
-  });
+export async function getAppSession() {
+  return getIronSession<AppSession>(await cookies(), getSessionOptions());
 }
 
-export async function takeTransaction(
-  id: string,
-): Promise<AuthTransaction | null> {
-  return getRedis().getdel<AuthTransaction>(`oidc:transaction:${id}`);
-}
-
-export async function saveUserSession(
-  id: string,
-  user: AuthenticatedUser,
-): Promise<void> {
-  await getRedis().set(`oidc:session:${id}`, user, {
-    ex: sessionLifetimeSeconds,
-  });
-}
-
-export async function getUserSession(
-  id: string | undefined,
-): Promise<AuthenticatedUser | null> {
-  if (!id) {
-    return null;
-  }
-  return getRedis().get<AuthenticatedUser>(`oidc:session:${id}`);
-}
-
-export async function destroyUserSession(
-  id: string | undefined,
-): Promise<void> {
-  if (id) {
-    await getRedis().del(`oidc:session:${id}`);
-  }
+export function createCodeVerifier(state: string): string {
+  return createHmac("sha256", requiredEnv("SESSION_SECRET"))
+    .update(`rvessid-pkce:${state}`)
+    .digest("base64url");
 }
 
 export async function createAuthorizationUrl(
@@ -132,7 +101,7 @@ export async function createAuthorizationUrl(
 ): Promise<URL> {
   const config = await getOidcConfig();
   const challenge = await oidc.calculatePKCECodeChallenge(
-    transaction.codeVerifier,
+    createCodeVerifier(transaction.state),
   );
 
   return oidc.buildAuthorizationUrl(config, {
@@ -158,7 +127,7 @@ export async function redeemAuthorizationCode(
     {
       expectedState: transaction.state,
       expectedNonce: transaction.nonce,
-      pkceCodeVerifier: transaction.codeVerifier,
+      pkceCodeVerifier: createCodeVerifier(transaction.state),
     },
     { redirect_uri: getCallbackUrl() },
   );
