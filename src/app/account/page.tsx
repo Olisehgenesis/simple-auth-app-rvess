@@ -10,10 +10,21 @@ export default async function AccountPage() {
     redirect("/");
   }
 
+  let pictureUrl: string | undefined;
+  if (user.profile.picture) {
+    try {
+      const url = new URL(user.profile.picture);
+      if (url.protocol === "https:") {
+        pictureUrl = url.href;
+      }
+    } catch {
+      pictureUrl = undefined;
+    }
+  }
+
   const claims = [
     ["Name", user.profile.name],
     ["Username", user.profile.preferred_username],
-    ["Picture", user.profile.picture],
   ].filter((claim): claim is [string, string] => typeof claim[1] === "string");
 
   return (
@@ -38,6 +49,23 @@ export default async function AccountPage() {
             <dd>{value}</dd>
           </div>
         ))}
+        {pictureUrl && (
+          <div className="claim-row">
+            <dt>Picture</dt>
+            <dd>
+              <img
+                className="profile-picture"
+                src={pictureUrl}
+                alt={`${user.profile.name ?? user.profile.preferred_username ?? "Your"} profile`}
+                width={96}
+                height={96}
+                loading="lazy"
+                decoding="async"
+                referrerPolicy="no-referrer"
+              />
+            </dd>
+          </div>
+        )}
       </dl>
       {claims.length === 0 && (
         <p className="empty-note">No optional profile details were returned.</p>

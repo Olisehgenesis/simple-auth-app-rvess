@@ -280,6 +280,16 @@ button:focus-visible {
   font-size: 14px !important;
 }
 
+.profile-picture {
+  display: block;
+  width: 96px;
+  height: 96px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #e4f0ec;
+  object-fit: cover;
+}
+
 .account-actions {
   margin-top: 28px;
   display: flex;
